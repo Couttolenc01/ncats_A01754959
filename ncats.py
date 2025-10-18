@@ -28,7 +28,7 @@ def he_init(shape):
 
 # Neural Network implementation
 class NeuralNetwork:
-    def _init_(self, input_size, hidden_size, output_size, learning_rate=0.001):
+    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.001):
         self.w1 = he_init((input_size, hidden_size))
         self.b1 = np.zeros((1, hidden_size))
         print('W=', self.w1.shape)
@@ -101,30 +101,40 @@ class NeuralNetwork:
             accuracy = self.test_accuracy(test_data, test_labels)
             print(f'Accuracy: {accuracy:.2f}')
 
-    # Clasificar imágenes según las predicciones
+        # Clasificar imágenes según las predicciones (robusto ante faltantes)
     def sort_predicted_images(self, predictions):
         import os, shutil
 
         preds = np.round(predictions).astype(int).flatten()
-        test_folder = "dataset/test/images"
+        test_folder = "dataset/test"
         cat_folder = "dataset/predict/cat"
         nocat_folder = "dataset/predict/nocat"
 
-        files = sorted(os.listdir(test_folder))
+        os.makedirs(cat_folder, exist_ok=True)
+        os.makedirs(nocat_folder, exist_ok=True)
 
-        if len(files) != len(preds):
-            print("Advertencia: número de imágenes distinto al de predicciones.")
-            return
+        files = sorted([f for f in os.listdir(test_folder) if not f.startswith('.')])
+        total_files = len(files)
+        total_preds = len(preds)
 
-        for i, name in enumerate(files):
-            src = os.path.join(test_folder, name)
-            if preds[i] == 1:
-                dst = os.path.join(cat_folder, name)
-            else:
-                dst = os.path.join(nocat_folder, name)
-            shutil.move(src, dst)
+        if total_files != total_preds:
+            print(f"Advertencia: número de imágenes distinto al de predicciones ({total_files} vs {total_preds}).")
+            print("Clasificando solo las imágenes existentes...")
 
-        print("Imágenes clasificadas según la predicción (0 = nocat, 1 = cat).")
+        limit = min(total_files, total_preds)
+
+        for i in range(limit):
+            value = preds[i]
+            src = os.path.join(test_folder, files[i])
+            dst = os.path.join(cat_folder if value == 1 else nocat_folder, files[i])
+
+            try:
+                shutil.copy(src, dst)
+            except FileNotFoundError:
+                print(f"No se encontró la imagen {files[i]}, se omite.")
+                continue
+
+        print("Clasificación completada. Las imágenes se copiaron a 'dataset/predict/cat' y 'dataset/predict/nocat'.")
 
 
 # Load and preprocess the data
@@ -158,6 +168,14 @@ print(predictions)
 # Test the model
 accuracy = nn.test_accuracy(test_data, test_labels)
 print(f'Test Accuracy: {accuracy * 100:.2f}%')
+
+# Mostrar resumen de redondeo
+rounded_preds = np.round(predictions).astype(int).flatten()
+count_cat = np.sum(rounded_preds == 1)
+count_nocat = np.sum(rounded_preds == 0)
+
+print(f"Predicciones redondeadas: {rounded_preds}")
+print(f"Total 'cat' = {count_cat}, total 'nocat' = {count_nocat}")
 
 # Clasificar imágenes automáticamente
 nn.sort_predicted_images(predictions)
