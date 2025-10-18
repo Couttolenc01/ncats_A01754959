@@ -1,3 +1,11 @@
+# ---------------------------------------------------
+# Ejecución desde terminal:
+#   /opt/anaconda3/bin/python ncats.py
+#
+# Generar imágenes primero con:
+#   /opt/anaconda3/bin/python genimages.py
+# ---------------------------------------------------
+
 import numpy as np
 import matplotlib.pyplot as plt
 
